@@ -25,9 +25,14 @@ from app.models.analytics import (
     AIProviderStats,
     DailyCount,
     ProviderCounts,
+    ProviderRow,
     SeverityBreakdown,
 )
-from app.storage.ai_usage_store import get_average_latency_ms, get_provider_stats
+from app.storage.ai_usage_store import (
+    get_average_latency_ms,
+    get_latency_by_provider,
+    get_provider_stats,
+)
 from app.storage.db import get_session
 from app.storage.models import (
     AnalysisFeedbackRecord,
@@ -114,6 +119,20 @@ def get_analytics(
         session.close()
 
     provider_stats = get_provider_stats(since)
+    latency_by_provider = get_latency_by_provider(since)
+    provider_rows = sorted(
+        (
+            ProviderRow(
+                provider=name,
+                success=counts["success"],
+                failure=counts["failure"],
+                avg_latency_ms=latency_by_provider.get(name),
+            )
+            for name, counts in provider_stats["by_provider"].items()
+        ),
+        key=lambda r: r.success + r.failure,
+        reverse=True,
+    )
 
     return AdminAnalyticsOut(
         generated_at=datetime.now(timezone.utc).isoformat(),
@@ -134,6 +153,7 @@ def get_analytics(
         feedback_positive=feedback_positive,
         feedback_negative=feedback_negative,
         ai_provider_stats=AIProviderStats(
+            providers=provider_rows,
             gemini=ProviderCounts(**provider_stats["gemini"]),
             groq=ProviderCounts(**provider_stats["groq"]),
             all_failed=provider_stats["all_failed"],

@@ -108,28 +108,25 @@ export default function AdminAnalytics() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-[var(--radius-control)] bg-[var(--color-mist)] p-3">
-              <p className="text-xs font-medium text-ink-faint">Gemini</p>
-              <p className="mt-1 text-sm text-ink">
-                {p.gemini.success} ok / {p.gemini.failure} failed
-              </p>
-              {p.gemini_avg_latency_ms != null && (
-                <p className="mt-0.5 font-mono text-xs text-ink-faint">
-                  avg {p.gemini_avg_latency_ms}ms
+            {(p.providers ?? []).map((row) => (
+              <div
+                key={row.provider}
+                className="rounded-[var(--radius-control)] bg-[var(--color-mist)] p-3"
+              >
+                <p className="text-xs font-medium capitalize text-ink-faint">{row.provider}</p>
+                <p className="mt-1 text-sm text-ink">
+                  {row.success} ok / {row.failure} failed
                 </p>
-              )}
-            </div>
-            <div className="rounded-[var(--radius-control)] bg-[var(--color-mist)] p-3">
-              <p className="text-xs font-medium text-ink-faint">Groq</p>
-              <p className="mt-1 text-sm text-ink">
-                {p.groq.success} ok / {p.groq.failure} failed
-              </p>
-              {p.groq_avg_latency_ms != null && (
-                <p className="mt-0.5 font-mono text-xs text-ink-faint">
-                  avg {p.groq_avg_latency_ms}ms
-                </p>
-              )}
-            </div>
+                {row.avg_latency_ms != null && (
+                  <p className="mt-0.5 font-mono text-xs text-ink-faint">
+                    avg {row.avg_latency_ms}ms
+                  </p>
+                )}
+              </div>
+            ))}
+            {(p.providers ?? []).length === 0 && (
+              <p className="text-sm text-ink-soft">No AI attempts logged in this window yet.</p>
+            )}
             <div className="rounded-[var(--radius-control)] bg-danger-light p-3">
               <p className="text-xs font-medium text-danger">Fell through to rule engine</p>
               <p className="mt-1 text-sm text-danger">{p.all_failed} requests</p>

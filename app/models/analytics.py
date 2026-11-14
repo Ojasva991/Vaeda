@@ -18,7 +18,18 @@ class ProviderCounts(BaseModel):
     failure: int
 
 
+class ProviderRow(BaseModel):
+    provider: str
+    success: int
+    failure: int
+    avg_latency_ms: float | None = None
+
+
 class AIProviderStats(BaseModel):
+    # One row per provider that has at least one logged attempt in the
+    # window (any provider in the gateway cascade, not just two).
+    providers: list[ProviderRow] = []
+    # Kept for backward compatibility with older clients.
     gemini: ProviderCounts
     groq: ProviderCounts
     # Requests where every configured provider failed and the response
@@ -28,9 +39,9 @@ class AIProviderStats(BaseModel):
     groq_avg_latency_ms: float | None
     # Explicit, not omitted - see this file's module docstring.
     note: str = (
-        "Covers POST /analyze and /analyze/follow-up only (both go through "
-        "the AI gateway). POST /analyze/image calls Gemini directly and is "
-        "not included here."
+        "Covers every call that goes through the AI gateway (text analysis, "
+        "follow-up chat and image analysis). Attempts skipped because a "
+        "provider had no key or was cooling down are not included."
     )
 
 

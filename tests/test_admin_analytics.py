@@ -74,6 +74,23 @@ def test_ai_provider_stats_shape_and_scope_note(client, make_user, monkeypatch):
     assert "groq" in body
     assert "all_failed" in body
     assert "not included" in body["note"].lower()
+    assert isinstance(body["providers"], list)
+
+
+def test_provider_rows_include_any_provider_with_latency(client, make_user, monkeypatch):
+    from app.storage.ai_usage_store import log_attempt
+
+    headers, user_id, _ = make_user()
+    monkeypatch.setattr(settings, "ADMIN_USER_IDS", [user_id])
+    log_attempt("cerebras", True, 120)
+    log_attempt("cerebras", False, 80)
+
+    body = client.get("/admin/analytics", headers=headers).json()["ai_provider_stats"]
+    rows = {r["provider"]: r for r in body["providers"]}
+    assert rows["cerebras"]["success"] >= 1
+    assert rows["cerebras"]["failure"] >= 1
+    assert rows["cerebras"]["avg_latency_ms"] is not None
+    assert "all_failed" not in rows
 
 
 def test_document_storage_bytes_reflect_uploads(client, make_user, monkeypatch):

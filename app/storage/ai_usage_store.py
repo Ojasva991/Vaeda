@@ -74,6 +74,32 @@ def get_provider_stats(since: datetime) -> dict:
     return stats
 
 
+def get_latency_by_provider(since: datetime) -> dict[str, float]:
+    """
+    Average latency (ms) of SUCCESSFUL attempts per provider, one query.
+    Providers with no successful timed attempt are left out.
+    """
+    session = get_session()
+    try:
+        rows = (
+            session.query(AIProviderUsageRecord.provider, AIProviderUsageRecord.latency_ms)
+            .filter(
+                AIProviderUsageRecord.success.is_(True),
+                AIProviderUsageRecord.created_at >= since,
+                AIProviderUsageRecord.latency_ms.isnot(None),
+                AIProviderUsageRecord.provider != "all_failed",
+            )
+            .all()
+        )
+    finally:
+        session.close()
+
+    sums: dict[str, list[int]] = {}
+    for provider, latency in rows:
+        sums.setdefault(provider, []).append(latency)
+    return {p: round(sum(v) / len(v), 1) for p, v in sums.items()}
+
+
 def get_average_latency_ms(provider: str, since: datetime) -> float | None:
     session = get_session()
     try:

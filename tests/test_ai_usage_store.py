@@ -1,6 +1,11 @@
 from datetime import datetime, timedelta, timezone
 
-from app.storage.ai_usage_store import get_average_latency_ms, get_provider_stats, log_attempt
+from app.storage.ai_usage_store import (
+    get_average_latency_ms,
+    get_latency_by_provider,
+    get_provider_stats,
+    log_attempt,
+)
 
 
 def test_log_attempt_and_get_provider_stats():
@@ -39,6 +44,17 @@ def test_get_average_latency_only_counts_successful_attempts():
 def test_get_average_latency_returns_none_when_no_data():
     future_cutoff = datetime.now(timezone.utc) + timedelta(hours=1)
     assert get_average_latency_ms("gemini", future_cutoff) is None
+
+
+def test_get_latency_by_provider_skips_failures_and_all_failed():
+    since = datetime.now(timezone.utc) - timedelta(minutes=1)
+    log_attempt("mistral", True, 200)
+    log_attempt("mistral", False, 9999)
+    log_attempt("all_failed", False, None)
+
+    latency = get_latency_by_provider(since)
+    assert latency["mistral"] < 9999
+    assert "all_failed" not in latency
 
 
 def test_log_attempt_never_raises_even_on_bad_input():
